@@ -20,6 +20,15 @@ type Community struct {
 	CreatedAt    time.Time `gorm:"autoCreateTime"`
 }
 
+type Member struct {
+	UserID      int32     `gorm:"primaryKey"`
+	CommunityID int32     `gorm:"primaryKey"`
+	CreatedAt   time.Time `gorm:"autoCreateTime"`
+
+	User      User      `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
+	Community Community `gorm:"foreignKey:CommunityID;constraint:OnDelete:CASCADE"`
+}
+
 type Moderator struct {
 	UserID      int32     `gorm:"primaryKey"`
 	CommunityID int32     `gorm:"primaryKey"`
@@ -31,13 +40,13 @@ type Moderator struct {
 
 type Wager struct {
 	WagerID        int32  `gorm:"primaryKey;autoIncrement"`
-	CommunityID    *int32 // nullable foreign key
-	OwnerID        *int32 // nullable foreign key
+	CommunityID    int32  // nullable foreign key
+	OwnerID        int32  // nullable foreign key
 	Title          string `gorm:"not null"`
 	Description    string
 	Decision       string
 	Explanation    string
-	NetLikes       int `gorm:"default:0"`
+	NetLikes       int32 `gorm:"default:0"`
 	ExpirationDate time.Time
 	CreatedAt      time.Time `gorm:"autoCreateTime"`
 
@@ -48,7 +57,7 @@ type Wager struct {
 type Gamble struct {
 	UserID    int32     `gorm:"primaryKey"`
 	WagerID   int32     `gorm:"primaryKey"`
-	Amount    int       `gorm:"not null"`
+	Amount    float32   `gorm:"not null"`
 	Position  string    `gorm:"not null"`
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 
@@ -61,7 +70,7 @@ type Comment struct {
 	UserID      int32     `gorm:"not null"`
 	WagerID     int32     `gorm:"not null"`
 	Description string    `gorm:"not null"`
-	NetLikes    int       `gorm:"default:0"`
+	NetLikes    int32     `gorm:"default:0"`
 	CreatedAt   time.Time `gorm:"autoCreateTime"`
 
 	User  User  `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
@@ -71,7 +80,7 @@ type Comment struct {
 type WagerLike struct {
 	UserID    int32     `gorm:"primaryKey"`
 	WagerID   int32     `gorm:"primaryKey"`
-	Value     int       `gorm:"not null;check:value >= -1 AND value <= 1"`
+	Value     int32     `gorm:"not null;check:value >= -1 AND value <= 1"`
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 
 	User  User  `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
@@ -81,7 +90,7 @@ type WagerLike struct {
 type CommentLike struct {
 	UserID    int32     `gorm:"primaryKey"`
 	CommentID int32     `gorm:"primaryKey"`
-	Value     int       `gorm:"not null;check:value >= -1 AND value <= 1"`
+	Value     int32     `gorm:"not null;check:value >= -1 AND value <= 1"`
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 
 	User    User    `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
