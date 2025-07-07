@@ -4,31 +4,26 @@ import (
 	"gorm.io/gorm"
 )
 
-func JoinCommunity(
+func IncreaseCommunityLimit(
 	DB *gorm.DB,
 	UserID int32,
-	CommunityID int32) (string, int32) {
+	CommunityID int32,
+	Increment int32) (string, int32) {
 
-	DB.AutoMigrate(Member{})
-	member := Member{
-		UserID:      UserID,
-		CommunityID: CommunityID,
-	}
-	result := DB.Create(&member)
-
+	var modified_limit int32
+	DB.Model(&Community{}).Select("ModifiedDailyLimit").Where("CommunityID = ?", CommunityID).Scan(&modified_limit)
+	result := DB.Model(&Community{}).Where("CommunityID = ?", CommunityID).Update("ModifiedDailyLimit", modified_limit+Increment)
 	if result.Error != nil {
 		return "Internal Error", 500
 	}
 	return "Success", 200
 }
-
 func LikeWager(
 	DB *gorm.DB,
 	UserID int32,
 	WagerID int32,
 	Value int32) (string, int32) {
 
-	DB.AutoMigrate(WagerLike{})
 	wagerLike := WagerLike{
 		UserID:  UserID,
 		WagerID: WagerID,
@@ -58,7 +53,6 @@ func LikeComment(
 	CommentID int32,
 	Value int32) (string, int32) {
 
-	DB.AutoMigrate(CommentLike{})
 	CommentLike := CommentLike{
 		UserID:    UserID,
 		CommentID: CommentID,

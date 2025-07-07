@@ -11,13 +11,14 @@ type User struct {
 }
 
 type Community struct {
-	CommunityID  int32  `gorm:"primaryKey;autoIncrement"`
-	Name         string `gorm:"not null"`
-	Description  string
-	Picture      string
-	NumFollowers int       `gorm:"default:0"`
-	RateLimit    int       `gorm:"default:0"`
-	CreatedAt    time.Time `gorm:"autoCreateTime"`
+	CommunityID        int32  `gorm:"primaryKey;autoIncrement"`
+	Name               string `gorm:"not null"`
+	Description        string
+	Picture            string
+	NumFollowers       int32     `gorm:"default:0"`
+	DailyPostsLimit    int32     `gorm:"default:20"`
+	ModifiedDailyLimit int32     `gorm:"default:20"`
+	CreatedAt          time.Time `gorm:"autoCreateTime"`
 }
 
 type Member struct {
@@ -66,15 +67,17 @@ type Gamble struct {
 }
 
 type Comment struct {
-	CommentID   int32     `gorm:"primaryKey;autoIncrement"`
-	UserID      int32     `gorm:"not null"`
-	WagerID     int32     `gorm:"not null"`
-	Description string    `gorm:"not null"`
-	NetLikes    int32     `gorm:"default:0"`
-	CreatedAt   time.Time `gorm:"autoCreateTime"`
+	CommentID       int32 `gorm:"primaryKey;autoIncrement"`
+	UserID          int32 `gorm:"not null"`
+	WagerID         int32
+	ParentCommentID *int32
+	Description     string    `gorm:"not null"`
+	NetLikes        int32     `gorm:"default:0"`
+	CreatedAt       time.Time `gorm:"autoCreateTime"`
 
-	User  User  `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
-	Wager Wager `gorm:"foreignKey:WagerID;constraint:OnDelete:CASCADE"`
+	User   User     `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
+	Wager  Wager    `gorm:"foreignKey:WagerID;constraint:OnDelete:CASCADE"`
+	Parent *Comment `gorm:"foreignKey:ParentCommentID;constraint:OnDelete:CASCADE"`
 }
 
 type WagerLike struct {

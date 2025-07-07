@@ -51,8 +51,6 @@ func MakeWager(
 	Description string,
 	ExpirationDate time.Time) (string, int32) {
 
-	DB.AutoMigrate(Wager{})
-
 	decision, explanation := services.Decide(Description)
 	wager := Wager{
 		CommunityID:    CommunityID,
@@ -76,8 +74,6 @@ func MakeGamble(
 	WagerID int32,
 	Amount float32,
 	Position string) (string, int32) {
-
-	DB.AutoMigrate(Gamble{})
 
 	var exp_date time.Time
 	DB.Model(&Wager{}).Select("ExpirationDate").Where("WagerID = ?", WagerID).Scan(&exp_date)
