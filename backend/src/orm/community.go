@@ -11,10 +11,10 @@ type CommunityUpdates struct {
 
 func CreateCommunity(
 	DB *gorm.DB,
-	UserID int32,
+	UserID int,
 	Name string,
 	Description string,
-	Picture string) (string, int32) {
+	Picture string) (string, int) {
 
 	community := Community{
 		Name:        Name,
@@ -43,9 +43,9 @@ func CreateCommunity(
 
 func UpdateCommunity(
 	DB *gorm.DB,
-	CommunityID int32,
+	CommunityID int,
 	Description string,
-	Picture string) (string, int32) {
+	Picture string) (string, int) {
 
 	updates := CommunityUpdates{
 		Description: Description,
@@ -60,8 +60,8 @@ func UpdateCommunity(
 
 func JoinCommunity(
 	DB *gorm.DB,
-	UserID int32,
-	CommunityID int32) (string, int32) {
+	UserID int,
+	CommunityID int) (string, int) {
 
 	tx := DB.Begin()
 	member := Member{
@@ -75,7 +75,7 @@ func JoinCommunity(
 		return "Internal Error", 500
 	}
 
-	var num_followers int32
+	var num_followers int
 	tx.Model(&Community{}).Select("NumFollowers").Where("CommunityID = ?", CommunityID).Scan(&num_followers)
 
 	result = tx.Model(&Community{}).Where("CommunityID = ?", CommunityID).Update("NumFollowers", num_followers+1)
@@ -89,8 +89,8 @@ func JoinCommunity(
 
 func LeaveCommunity(
 	DB *gorm.DB,
-	UserID int32,
-	CommunityID int32) (string, int32) {
+	UserID int,
+	CommunityID int) (string, int) {
 
 	tx := DB.Begin()
 	member := Member{
@@ -104,7 +104,7 @@ func LeaveCommunity(
 		return "Internal Error", 500
 	}
 
-	var num_followers int32
+	var num_followers int
 	tx.Model(&Community{}).Select("NumFollowers").Where("CommunityID = ?", CommunityID).Scan(&num_followers)
 
 	result = tx.Model(&Community{}).Where("CommunityID = ?", CommunityID).Update("NumFollowers", num_followers-1)

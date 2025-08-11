@@ -29,8 +29,10 @@ CREATE TABLE Wagers (
     owner_id INTEGER REFERENCES Users(user_id) ON DELETE SET NULL,
     title VARCHAR NOT NULL,
     description TEXT,
-    decision VARCHAR,
-    explanation TEXT,
+    left VARCHAR NOT NULL,
+    right VARCHAR NOT NULL,
+    decision VARCHAR DEFAULT "",
+    explanation TEXT DEFAULT "",
     net_likes INTEGER DEFAULT 0,
     expiration_date TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -49,6 +51,7 @@ CREATE TABLE Comments (
     comment_id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES Users(user_id) ON DELETE CASCADE,
     wager_id INTEGER REFERENCES Wagers(wager_id) ON DELETE CASCADE,
+    parent_comment_id INTEGER REFERENCES Comments(comment_id) DEFAULT -1,
     description TEXT NOT NULL,
     net_likes INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
