@@ -19,9 +19,10 @@ func RewardWager(
 	WagerID int) (string, int) {
 	DB.AutoMigrate(Wager{})
 
-	var decision string
-	tx := DB.Model(&Wager{}).Select("Decision").Where("WagerID = ?", WagerID).Scan(&decision)
+	var wagerDetails map[string]interface{}
+	tx := DB.Model(&Wager{}).Select("Decision", "Left", "Right", "LeftAmount", "RightAmount").Where("WagerID = ?", WagerID).Scan(&wagerDetails)
 
+	decision := wagerDetails["Decision"].(string)
 	if err := tx.Model(&Wager{}).
 		Select("decision").
 		Where("wager_id = ?", WagerID).
@@ -35,16 +36,23 @@ func RewardWager(
 		return "No decision set for wager", 400
 	}
 
-	var losing_total float32
-	var winning_total float32
-	DB.Model(&Gamble{}).Select("SUM(Amount)").Where("WagerID = ? AND Position != ?", WagerID, decision).Scan(&losing_total)
-	DB.Model(&Gamble{}).Select("SUM(Amount)").Where("WagerID = ? AND Position = ?", WagerID, decision).Scan(&winning_total)
+	var losingTotal float32
+	var winningTotal float32
+
+	if decision == wagerDetails["Left"].(string) {
+		winningTotal = wagerDetails["LeftAmount"].(float32)
+		losingTotal = wagerDetails["RightAmount"].(float32)
+	} else {
+		winningTotal = wagerDetails["RightAmount"].(float32)
+		losingTotal = wagerDetails["LeftAmount"].(float32)
+	}
+
 	var winners []Winner
 	DB.Model(&Gamble{}).Select("User.UserID, User.Cash, Cash.Amount").Joins("JOIN User on User.UserID = Gamble.UserID").Where("WagerID = ? AND Position = ?", WagerID, decision).Scan(&winners)
 
 	tx = DB.Begin()
 	for i := range winners {
-		reward := (winners[i].Amount / winning_total) * losing_total
+		reward := (winners[i].Amount / winningTotal) * losingTotal
 
 		if err := tx.Model(&User{}).Where("UserID = ?", winners[i].UserID).Update("Cash", gorm.Expr("cash + ?", reward)).Error; err != nil {
 			tx.Rollback()
@@ -92,7 +100,7 @@ func MakeGamble(
 	Position string) (string, int) {
 
 	var wagerInfo map[string]interface{}
-	DB.Model(&Wager{}).Select("ExpirationDate", "Left", "Right").Where("WagerID = ?", WagerID).Scan(&wagerInfo)
+	DB.Model(&Wager{}).Select("ExpirationDate", "Left", "Right", "LeftAmount", "RightAmount").Where("WagerID = ?", WagerID).Scan(&wagerInfo)
 
 	expDate := wagerInfo["ExpirationDate"].(time.Time)
 	left := wagerInfo["Left"].(string)
@@ -115,7 +123,7 @@ func MakeGamble(
 	err := tx.Model(&User{}).Where("UserID = ?", UserID).Update("Cash", cash-Amount).Error
 	if err != nil {
 		tx.Rollback()
-		return "Internal Error", 500
+		return "Internal Database Error", 500
 	}
 	gamble := Gamble{
 		UserID:   UserID,
@@ -128,6 +136,13 @@ func MakeGamble(
 	if result.Error != nil {
 		tx.Rollback()
 		return "Internal Database Error", 500
+	}
+	if Position == left {
+		leftAmount := wagerInfo["LeftAmount"].(float32)
+		DB.Model(&Wager{}).Where("WagerID = ?", WagerID).Update("LeftAmount", leftAmount+Amount)
+	} else {
+		rightAmount := wagerInfo["RightAmount"].(float32)
+		DB.Model(&Wager{}).Where("WagerID = ?", WagerID).Update("RightAmount", rightAmount+Amount)
 	}
 	tx.Commit()
 	return "Success", 200
@@ -179,4 +194,55 @@ func TerminateWager(
 			"explanation": explanation,
 		})
 	return "Success", 200
+}
+
+func LoadWagers(
+	DB *gorm.DB,
+	CommunityID int,
+	UserID int,
+	Offset int,
+	Limit int,
+	SortCategory string,
+	Ascending bool) ([]Wager, error) {
+
+	sortParam2Field := map[string]string{"Likes": "w.NetLikes", "Time": "CreatedAt", "Amount": "Amount"}
+
+	var sortCateg string
+	var ok bool
+	if sortCateg, ok = sortParam2Field[SortCategory]; !ok {
+		return nil, fmt.Errorf("Invalid Sort Category Provided")
+	}
+	var sort string
+	if Ascending {
+		sort = "ASC"
+	} else {
+		sort = "DESC"
+	}
+	if UserID == -1 && CommunityID == -1 {
+		return nil, fmt.Errorf("Cannot have both user and community IDs as -1")
+	}
+
+	var whereClause string
+	if UserID == -1 {
+		whereClause = fmt.Sprintf("w.community_id = %d", CommunityID)
+	} else if CommunityID == -1 {
+		whereClause = fmt.Sprintf("w.owner_id = %d", UserID)
+	} else {
+		return nil, fmt.Errorf("Cannot have both user and community IDs be greater than 0")
+	}
+	orderClause := sortCateg + " " + sort
+	var results []Wager
+	DB.Model(&Wager{}).
+		Select(
+			`w.*,
+			u.user_name,
+			u.profile_pic
+		`).
+		Joins("JOIN users AS u ON u.user_id == w.owner_id").
+		Where(whereClause).
+		Order(orderClause).
+		Offset(Offset).
+		Limit(Limit).
+		Scan(&results)
+	return results, nil
 }

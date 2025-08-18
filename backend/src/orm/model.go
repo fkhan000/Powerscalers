@@ -3,22 +3,30 @@ package models
 import "time"
 
 type User struct {
-	UserID     int    `gorm:"primaryKey;autoIncrement"`
-	UserName   string `gorm:"not null"`
-	ProfilePic string
-	Cash       float32   `gorm:"default:0"`
-	CreatedAt  time.Time `gorm:"autoCreateTime"`
+	UserID            int    `gorm:"primaryKey;autoIncrement"`
+	UserName          string `gorm:"not null"`
+	ProfilePic        string
+	Cash              float32            `gorm:"default:0"`
+	CreatedAt         time.Time          `gorm:"autoCreateTime"`
+	JoinedCommunities []CommunityPreview `gorm:"default:[]"`
+}
+
+type CommunityPreview struct {
+	CommunityID  int
+	Name         string
+	Picture      string
+	NumFollowers int
 }
 
 type Community struct {
-	CommunityID        int    `gorm:"primaryKey;autoIncrement"`
-	Name               string `gorm:"not null"`
-	Description        string
-	Picture            string
-	NumFollowers       int       `gorm:"default:0"`
-	DailyPostsLimit    int       `gorm:"default:20"`
-	ModifiedDailyLimit int       `gorm:"default:20"`
-	CreatedAt          time.Time `gorm:"autoCreateTime"`
+	CommunityID     int    `gorm:"primaryKey;autoIncrement"`
+	Name            string `gorm:"not null"`
+	Description     string
+	Picture         string
+	NumFollowers    int       `gorm:"default:0"`
+	DailyPostsLimit int       `gorm:"default:20"`
+	NumPostsAllowed int       `gorm:"default:20"`
+	CreatedAt       time.Time `gorm:"autoCreateTime"`
 }
 
 type Member struct {
@@ -49,13 +57,21 @@ type Wager struct {
 	Right          string `gorm:"not null"`
 	Decision       string
 	Explanation    string
+	LeftAmount     int       `gorm:"default:0"`
+	RightAmount    int       `gorm:"default:0"`
 	NumVoR         int       `gorm:"default:5"`
 	NetLikes       int       `gorm:"default:0"`
+	TotalComments  int       `gorm:"default:0"`
 	ExpirationDate time.Time `gorm:"not null"`
 	CreatedAt      time.Time `gorm:"autoCreateTime"`
 
 	Community *Community `gorm:"foreignKey:CommunityID;constraint:OnDelete:SET NULL"`
 	Owner     *User      `gorm:"foreignKey:OwnerID;constraint:OnDelete:SET NULL"`
+
+	UserName            string `gorm:"column:user_name"` // u.user_name
+	UserProfilePic      string `gorm:"column:profile_pic"`
+	CommunityProfilePic string `gorm:"column:picture"`
+	CommunityName       string `gorm:"column:name"`
 }
 
 type Gamble struct {
@@ -67,6 +83,9 @@ type Gamble struct {
 
 	User  User  `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
 	Wager Wager `gorm:"foreignKey:WagerID;constraint:OnDelete:CASCADE"`
+
+	UserName   string `gorm:"column:user_name"`
+	ProfilePic string `gorm:"column:profile_pic"`
 }
 
 type Comment struct {

@@ -32,10 +32,24 @@ func AddComment(
 		ParentCommentID: &ParentCommentID,
 		Description:     Description,
 	}
-	result := DB.Create(&Comment)
-	if result.Error != nil {
-		return "Internal Error", 500
+
+	tx := DB.Begin()
+
+	err := tx.Create(&Comment).Error
+
+	if err != nil {
+		tx.Rollback()
+		return fmt.Sprintf("Error creating comment: %s", err), 500
 	}
+	var totalComments int
+	tx.Table("wager as w").Select("total_comments").Where("wager_id = ?", WagerID).Scan(totalComments)
+
+	err = tx.Table("wager as w").Where("wager_id", WagerID).Update("total_comments", totalComments).Error
+	if err != nil {
+		tx.Rollback()
+		return fmt.Sprintf("Error updating total comments: %s", err), 500
+	}
+	tx.Commit()
 	return "Success", 200
 }
 
@@ -58,11 +72,11 @@ func FetchComments(
 	}
 	orderClause := sortCol + " " + strings.ToUpper(Order)
 
-	var allIDs []int32
-	var parentIDs []int32
+	var allIDs []int
+	var parentIDs []int
 
 	for i := 0; i < depth; i++ {
-		var nextIDs []int32
+		var nextIDs []int
 		q := DB.Table("comments AS c").
 			Where("c.wager_id = ?", WagerID)
 
@@ -109,6 +123,8 @@ func FetchComments(
 		Joins("LEFT JOIN gambles AS g ON g.user_id = c.user_id AND g.wager_id = c.wager_id").
 		Where("c.comment_id IN ?", allIDs).
 		Order(orderClause).
+		Offset(Offset).
+		Limit(Limit).
 		Scan(&results)
 	if tx.Error != nil {
 		return nil, fmt.Errorf("database error: %w", tx.Error)

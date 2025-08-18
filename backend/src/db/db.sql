@@ -34,6 +34,7 @@ CREATE TABLE Wagers (
     decision VARCHAR DEFAULT "",
     explanation TEXT DEFAULT "",
     net_likes INTEGER DEFAULT 0,
+    total_comments INTEGER DEFAULT 0,
     expiration_date TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
